@@ -19,3 +19,6 @@ Interpretador de comandos da disciplina de SO 27-01-23
 ### OS:
 
     Debian (Linux)
+
+
+![shell](https://user-images.githubusercontent.com/88283829/215017080-6a9f2f0f-c5d1-496e-8229-b506fa29c351.png)
