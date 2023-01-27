@@ -8,9 +8,7 @@ from pathlib import Path
 from colorama import Fore
 from threading import BoundedSemaphore, Lock, RLock
 from interface import ICommand
-#import fcntl
-import portalocker
-from portalocker import LOCK_EX
+import fcntl
 
 
 if platform.system() == "Windows":
@@ -54,15 +52,18 @@ class CommandInterpreter(ICommand):
 
     def edit(self, *args):
         global semaphore
+        semaphore.acquire()
+        file = open(os.path.join(os.getcwd(), args[0].split(' ')[1]), 'r+', encoding='utf-8')
         try:
-            file = open(args[0].split(' ')[1], 'r+', encoding='utf-8')
-            portalocker.lock(file, flags=LOCK_EX)
-            if PLATFORM:
-                os.system('notepad {0}'.format(args[0].split(' ')[1]))
-                portalocker.unlock(file)
-                file.close()
+            fcntl.flock(file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            os.system("mousepad {0}".format(os.path.join(os.getcwd(), args[0].split(' ')[1])))
         except Exception as e:
-            print('Arquivo ja em edicao')
+            print('O arquivo está sendo editado por outro processo.')
+        finally:
+            fcntl.flock(file, fcntl.LOCK_UN)
+            file.close()
+            semaphore.release()
+            time.sleep(1)
 
     def exit(self, *args):
         exit(0)
@@ -81,7 +82,6 @@ class CommandInterpreter(ICommand):
             if base[1] == '/':
                 os.chroot(os.path.abspath(ROOT))
                 return ROOT
-
             os.chdir(os.path.abspath(base[1]))
             semaphore.release()
             return os.path.abspath(os.getcwd()).replace('\\', '/')
@@ -166,7 +166,7 @@ class CommandInterpreter(ICommand):
                     try:
                         self.edit(command)
                     except Exception as e:
-                        print("Arquivo ja esta sendo editado")
+                        print(f"Erro inesperado {e}")
                 else:
                     print(command.split(' ')[0:2])
                     print(Fore.RED + " '{0}' is not recognized by the system.".format(command))
@@ -179,7 +179,7 @@ class CommandInterpreter(ICommand):
                 pass
 
 
-semaphore = portalocker.BoundedSemaphore(1)
+semaphore = BoundedSemaphore(1)
 if __name__ == '__main__':
     command_interpreter = CommandInterpreter()
     command_interpreter.start()
