@@ -12,6 +12,7 @@ import fcntl
 
 
 if platform.system() == "Windows":
+    print("Funcao edit disponivel apenas no linux")
     PLATFORM = True
     ROOT = "C:\\"
 else:
@@ -46,9 +47,18 @@ class CommandInterpreter(ICommand):
         semaphore.release()
 
     def cat(self, *args):
+        semaphore.acquire()
         with open(args[0].split(' ')[1], 'r', encoding='utf-8') as file:
             for line in file.readlines():
-                print(line)
+                try:
+                    fcntl.flock(file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    print(line)
+                except Exception as e:
+                    print('O arquivo está sendo editado por outro processo.')
+                finally:
+                    fcntl.flock(file, fcntl.LOCK_UN)
+        semaphore.release()
+        time.sleep(1)
 
     def edit(self, *args):
         global semaphore
