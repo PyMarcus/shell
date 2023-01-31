@@ -4,6 +4,7 @@ import sys
 import shutil
 from threading import Semaphore
 from time import sleep
+from pathlib import Path
 
 
 if platform.system()=='Windows':
@@ -41,7 +42,6 @@ def block_access(file=None,command=None,function=None):
         ##semaphore.release()
         sleep(1)
 
-
 def ver():
     #Exibe versão
     print(platform.system())
@@ -62,12 +62,21 @@ def exit():
 
 def mkdir(path):
     #Criar um diretório
-    os.mkdir(path)
+    if not Path(path).is_dir():
+        os.mkdir(path)
+    else:
+        print("O diretório ja existe.")
 
 
 def rmd(path):
     #Apaga o diretório
-    os.rmdir(path)
+    if Path(path).is_dir():
+        if PLATFORM:
+            os.system('del {0}'.format(path))
+        else:
+            os.system('rm -r {0}'.format(path))
+    else:
+        print("Não é um diretório.")
 
 def rma(path):
     #Apaga um arquivo
@@ -115,7 +124,10 @@ while True:
         else:
             command = input('{0}/> '.format(current_dir().replace('\\','/').replace('C:/','')))
 
-        if command.split(' ')[0]=='dir':
+        if command.split(' ')[0]=='ver':
+            ver()
+
+        elif command.split(' ')[0]=='dir':
             dir(command.split(' ')[1])
 
         elif command.split(' ')[0]=='exit':
@@ -125,7 +137,7 @@ while True:
             mkdir(command.split(' ')[1])
 
         elif command.split(' ')[0]=='rm' and command.split(' ')[1]=='-r':
-            block_access(command=command.split(' ')[2], function=rmd,file=command.split(' ')[2])
+            rmd(command.split(' ')[2])
 
         elif command.split(' ')[0]=='rm' and command.split(' ')[1]=='-a':
             block_access(command=command.split(' ')[2], function=rma,file=command.split(' ')[2])
@@ -149,7 +161,7 @@ while True:
             print(command.split(' ')[0],' Comando não foi encontrado.')
 
     except PermissionError as e:
-        pass
+        print("Sem permissão")
     except Exception as e:
         pass
     except KeyboardInterrupt as e:
