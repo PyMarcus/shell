@@ -10,7 +10,7 @@ if platform.system()=='Windows':
     PLATFORM=True
     import msvcrt
     semaphore = Semaphore()
-    ROOT = 'C:\\' 
+    ROOT = 'C:\\'
 else:
     PLATFORM=False
     ROOT = '/'
@@ -19,9 +19,8 @@ else:
 
 
 def block_access(file=None,command=None,function=None):
-    semaphore.acquire()
+    ##semaphore.acquire()
     try:
-        print(file,command)
         if PLATFORM:
             file = open(file, 'r+')
             msvcrt.locking(file.fileno(), msvcrt.LK_RLCK, 1)
@@ -32,28 +31,28 @@ def block_access(file=None,command=None,function=None):
             function(command)
     except Exception as e:
         print('Ja exite um processo acessando este arquivo', e)
-    finally: 
+    finally:
         if PLATFORM:
             msvcrt.locking(file.fileno(), msvcrt.LK_UNLCK, 1)
             file.close()
         else:
             fcntl.flock(file, fcntl.LOCK_UN)
             file.close()
-        semaphore.release()
-        sleep(1)    
+        ##semaphore.release()
+        sleep(1)
 
 
-def ver(): 
-    #Exibe versão 
+def ver():
+    #Exibe versão
     print(platform.system())
 
 
 def dir(command):
     #Lista o conteúdo do diretório
-    if PLATFORM: 
+    if PLATFORM:
         os.system('dir {0}'.format(command))
     else:
-        os.system('ls {0}'.format(command))    
+        os.system('ls {0}'.format(command))
 
 
 def exit():
@@ -72,20 +71,16 @@ def rmd(path):
 
 def rma(path):
     #Apaga um arquivo
-    if PLATFORM:
-        os.system('del {0}'.format(path))
-    else:
-        os.system('rm -a {0}'.format(path))
+    os.remove(path)
+
+def mv(path):
+    #Modificar o nome no arquivo
+    shutil.move(path[1],path[2])
 
 
-def mv(file, path):
-    #Modificar o nome no arquivo 
-    shutil.move(file,path)
-
-
-def cp(file,path):
+def cp(path):
     #Copiar um arquivo para outro diretório
-    shutil.copy(file,path)
+    shutil.copy(path[1],path[2])
 
 
 def cat(path):
@@ -115,7 +110,7 @@ def current_dir():
 
 while True:
     try:
-        if current_dir == ROOT: 
+        if current_dir == ROOT:
             command = input('> ')
         else:
             command = input('{0}/> '.format(current_dir().replace('\\','/').replace('C:/','')))
@@ -123,34 +118,37 @@ while True:
         if command.split(' ')[0]=='dir':
             dir(command.split(' ')[1])
 
-        if command.split(' ')[0]=='exit':
+        elif command.split(' ')[0]=='exit':
             exit()
 
-        if command.split(' ')[0]=='mkdir':
+        elif command.split(' ')[0]=='mkdir':
             mkdir(command.split(' ')[1])
 
-        if command.split(' ')[0]=='rm' and command.split(' ')[1]=='-r':
-            rmd(command.split(' ')[2])
+        elif command.split(' ')[0]=='rm' and command.split(' ')[1]=='-r':
+            block_access(command=command.split(' ')[2], function=rmd,file=command.split(' ')[2])
 
-        if command.split(' ')[0]=='rm' and command.split(' ')[1]=='-a':
-            rma(command.split(' ')[2])
+        elif command.split(' ')[0]=='rm' and command.split(' ')[1]=='-a':
+            block_access(command=command.split(' ')[2], function=rma,file=command.split(' ')[2])
 
-        if command.split(' ')[0]=='mv':
-            mv(command.split(' ')[1],command.split(' ')[2])
+        elif command.split(' ')[0]=='mv':
+            block_access(command=command.split(' '), function=mv,file=command.split(' ')[1])
 
-        if command.split(' ')[0]=='cp':
-            cp(command.split(' ')[1],command.split(' ')[2])
+        elif command.split(' ')[0]=='cp':
+            block_access(command=command.split(' '), function=cp,file=command.split(' ')[1])
 
-        if command.split(' ')[0]=='cat':
-            cat(command.split(' ')[1])
+        elif command.split(' ')[0]=='cat':
+            block_access(command=command.split(' ')[1], function=cat,file=command.split(' ')[1])
 
-        if command.split(' ')[0]=='edit':
+        elif command.split(' ')[0]=='edit':
             block_access(command=command.split(' ')[1], function=edit,file=command.split(' ')[1])
 
-        if command.split(' ')[0]=='cd':
+        elif command.split(' ')[0]=='cd':
             cd(command.split(' ')[1])
 
-    except PermissionError as e:   
+        else:
+            print(command.split(' ')[0],' Comando não foi encontrado.')
+
+    except PermissionError as e:
         pass
     except Exception as e:
         pass
